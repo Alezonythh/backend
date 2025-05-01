@@ -26,11 +26,26 @@ export class AuthService {
     };
   }
 
-  async register(username: string, password: string) {
-    const hashedPassword = await bcrypt.hash(password, 10);
+  async register(body: {
+    username: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string;
+    email: string;
+  }) {
+    const hashedPassword = await bcrypt.hash(body.password, 10);
     const user = await this.prisma.user.create({
-      data: { username, password: hashedPassword },
+      data: {
+        username: body.username,
+        password: hashedPassword,
+        firstName: body.firstName,
+        lastName: body.lastName,
+        dateOfBirth: new Date(body.dateOfBirth),
+        email: body.email,
+      },
     });
     return user;
   }
+  
 }
