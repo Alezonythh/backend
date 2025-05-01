@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get } from '@nestjs/common';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
@@ -17,5 +17,9 @@ export class AuthController {
       throw new Error('Invalid credentials');
     }
     return this.authService.login(user);
+  }
+  @Get('/')
+  async getHello(): Promise<string> {
+    return 'Hello World!';
   }
 }
