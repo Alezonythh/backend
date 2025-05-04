@@ -56,8 +56,9 @@ model Consultation {
 model AIResponse {
   id              Int           @id @default(autoincrement())
   consultationId  Int
+  role            String        @default("assistant") // <-- tambahkan default
   message         String
   timestamp       DateTime      @default(now())
-  
+
   consultation    Consultation  @relation(fields: [consultationId], references: [id])
 }

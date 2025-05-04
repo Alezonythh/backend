@@ -24,6 +24,7 @@ export class ConsultationService {
       where: { id },
       include: {
         doctor: true,
+        user: true,
         aiResponses: {
           orderBy: {
             timestamp: 'asc',
@@ -90,43 +91,65 @@ export class ConsultationService {
       },
     });
   }
-
-  async addUserMessage(
-    consultationId: number,
-    userMessage: string,
-  ): Promise<AIResponse> {
-    const consultation = await this.prisma.consultation.findUnique({
-      where: { id: consultationId },
-      include: {
-        doctor: true,
-        aiResponses: {
-          orderBy: {
-            timestamp: 'desc',
+    async addUserMessage(
+      consultationId: number,
+      userMessage: string,
+    ): Promise<AIResponse> {
+      const consultation = await this.prisma.consultation.findUnique({
+        where: { id: consultationId },
+        include: {
+          doctor: true,
+          user: true,
+          aiResponses: {
+            orderBy: {
+              timestamp: 'asc', // Ubah ke ascending supaya riwayat terurut dari awal
+            },
           },
         },
-      },
-    });
-
-    if (!consultation) {
-      throw new NotFoundException(`Consultation with ID ${consultationId} not found`);
+      });
+    
+      if (!consultation) {
+        throw new NotFoundException(`Consultation with ID ${consultationId} not found`);
+      }
+    
+      if (consultation.status !== 'active') {
+        throw new Error('Consultation must be active to add messages');
+      }
+    
+      // 1️⃣ Simpan pesan user terlebih dahulu
+      await this.prisma.aIResponse.create({
+        data: {
+          consultationId,
+          message: userMessage,
+          role: 'user',
+        },
+      });
+    
+      // 2️⃣ Refresh consultation agar aiResponses berisi pesan user juga
+      const updatedConsultation = await this.prisma.consultation.findUnique({
+        where: { id: consultationId },
+        include: {
+          doctor: true,
+          user: true,
+          aiResponses: {
+            orderBy: { timestamp: 'asc' },
+          },
+        },
+      });
+    
+      // 3️⃣ Generate AI response
+      const aiResponse = await this.aiService.generateResponse(
+        userMessage,
+        updatedConsultation!,
+      );
+    
+      // 4️⃣ Simpan pesan AI
+      return this.prisma.aIResponse.create({
+        data: {
+          consultationId,
+          message: aiResponse,
+          role: 'assistant',
+        },
+      });
     }
-
-    if (consultation.status !== 'active') {
-      throw new Error('Consultation must be active to add messages');
     }
-
-    // Get AI response
-    const aiResponse = await this.aiService.generateResponse(
-      userMessage,
-      consultation,
-    );
-
-    // Save the AI response
-    return this.prisma.aIResponse.create({
-      data: {
-        consultationId,
-        message: aiResponse,
-      },
-    });
-  }
-}
