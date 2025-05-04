@@ -55,8 +55,6 @@ export class AIService {
         },
         ...historyMessages
       ];
-      
-      console.log('Messages to be sent to Groq:', JSON.stringify(messages, null, 2));
       // Panggil Groq API
       const completion = await this.groqClient.chat.completions.create({
         model: 'meta-llama/llama-4-maverick-17b-128e-instruct',

@@ -102,7 +102,7 @@ export class ConsultationService {
           user: true,
           aiResponses: {
             orderBy: {
-              timestamp: 'asc', // Ubah ke ascending supaya riwayat terurut dari awal
+              timestamp: 'asc', 
             },
           },
         },
