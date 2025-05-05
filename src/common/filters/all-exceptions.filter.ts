@@ -41,8 +41,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       path: request.url,
       method: request.method,
       message: status === HttpStatus.INTERNAL_SERVER_ERROR 
-        ? 'Terjadi kesalahan pada server. Silakan coba lagi nanti.' // Hide actual error in production
-        : message,
+        ? 'An error occurred on the server. Please try again later.' // Hide actual error in production        : message,
       success: false,
       requestId: request['id'] || null
     };
