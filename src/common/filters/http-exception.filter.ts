@@ -1,8 +1,10 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
 
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(HttpExceptionFilter.name);
+
   catch(exception: HttpException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -19,17 +21,24 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (typeof exceptionResponse === 'object') {
       // Extract message
       if ('message' in exceptionResponse) {
-        errorMessage = exceptionResponse['message'];
+        const message = exceptionResponse['message'];
+        errorMessage = Array.isArray(message) 
+          ? message 
+          : typeof message === 'string' 
+            ? message 
+            : String(message);
       }
       
       // Extract field information if available
       if ('field' in exceptionResponse) {
-        errorField = exceptionResponse['field'];
+        const field = exceptionResponse['field'];
+        errorField = field !== null && field !== undefined ? String(field) : null;
       }
       
       // Extract error code if available
       if ('errorCode' in exceptionResponse) {
-        errorCode = exceptionResponse['errorCode'];
+        const code = exceptionResponse['errorCode'];
+        errorCode = code !== null && code !== undefined ? String(code) : null;
       }
     }
 
@@ -60,7 +69,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     // Log server errors (500s) for monitoring
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
-      console.error(`[Server Error] ${request.method} ${request.url}:`, exception);
+      this.logger.error(
+        `[Server Error] ${request.method} ${request.url}`,
+        exception.stack,
+        'HttpExceptionFilter'
+      );
+    } else {
+      // Log client errors with less severity
+      this.logger.warn(
+        `[Client Error ${status}] ${request.method} ${request.url}: ${JSON.stringify(errorMessage)}`,
+        'HttpExceptionFilter'
+      );
     }
 
     response.status(status).json(errorResponse);

@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException, BadRequestException, HttpException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
@@ -90,6 +90,7 @@ export class AuthService {
       },
     });
     
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...result } = user;
     return result;
   }
@@ -109,5 +110,53 @@ export class AuthService {
     return user;
   }
   
-  
+  async updateUserProfile(id: number, data: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    dateOfBirth?: string;
+  }) {
+    // Check if email already exists if it's being updated
+    if (data.email) {
+      const existingEmail = await this.prisma.user.findFirst({
+        where: { 
+          email: data.email,
+          id: { not: id }
+        },
+      });
+      
+      if (existingEmail) {
+        throw new EmailAlreadyExistsException();
+      }
+    }
+    
+    // Process date if provided
+    const updateData: any = { ...data };
+    if (data.dateOfBirth) {
+      updateData.dateOfBirth = new Date(data.dateOfBirth);
+    }
+    
+    try {
+      const updatedUser = await this.prisma.user.update({
+        where: { id },
+        data: updateData,
+        select: {
+          id: true,
+          username: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          dateOfBirth: true,
+        },
+      });
+      return updatedUser;
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new BadRequestException('User not found');
+        }
+      }
+      throw error;
+    }
+  }
 }
