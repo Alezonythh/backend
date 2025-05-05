@@ -1,7 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { 
+  EmailAlreadyExistsException, 
+  UsernameAlreadyExistsException,
+  InvalidPasswordException,
+  EmailNotFoundException,
+  WeakPasswordException
+} from '../common/decorators/custom-errors.decorator';
 
 @Injectable()
 export class AuthService {
@@ -12,17 +20,30 @@ export class AuthService {
 
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.prisma.user.findUnique({ where: { email } });
-    if (user && await bcrypt.compare(password, user.password)) {
-      const { password, ...result } = user;
-      return result;
+    if (!user) {
+      throw new EmailNotFoundException();
     }
-    return null;
+    
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new InvalidPasswordException();
+    }
+    
+    const { password: _, ...result } = user;
+    return result;
   }
 
   async login(user: any) {
     const payload = { username: user.username, sub: user.id };
     return {
       access_token: this.jwtService.sign(payload),
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName
+      }
     };
   }
 
@@ -34,6 +55,29 @@ export class AuthService {
     dateOfBirth: string;
     email: string;
   }) {
+    // Check if email already exists
+    const existingEmail = await this.prisma.user.findUnique({
+      where: { email: body.email },
+    });
+    
+    if (existingEmail) {
+      throw new EmailAlreadyExistsException();
+    }
+    
+    // Check if username already exists
+    const existingUsername = await this.prisma.user.findUnique({
+      where: { username: body.username },
+    });
+    
+    if (existingUsername) {
+      throw new UsernameAlreadyExistsException();
+    }
+    
+    // Validate password strength
+    if (body.password.length < 6) {
+      throw new WeakPasswordException();
+    }
+    
     const hashedPassword = await bcrypt.hash(body.password, 10);
     const user = await this.prisma.user.create({
       data: {
@@ -45,7 +89,9 @@ export class AuthService {
         email: body.email,
       },
     });
-    return user;
+    
+    const { password, ...result } = user;
+    return result;
   }
 
   async getUserById(id: number) {
