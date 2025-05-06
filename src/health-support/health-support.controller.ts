@@ -1,7 +1,13 @@
-import { Body, Controller, Post, UseGuards, Request, Logger } from '@nestjs/common';
+import { 
+  Body,
+  Controller,
+  Post,
+  UseGuards,
+  Request,
+  Logger,
+} from '@nestjs/common';
 import { HealthSupportService } from './health-support.service';
-// Fix the import path for JwtAuthGuard
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('health-support')
 export class HealthSupportController {
