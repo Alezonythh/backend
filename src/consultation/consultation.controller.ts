@@ -1,7 +1,13 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Request, Patch } from '@nestjs/common';
 import { ConsultationService } from './consultation.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Consultation, AIResponse } from '@prisma/client';
+import { IsString } from 'class-validator';
+
+export class UpdateNotesDto {
+  @IsString()
+  notes: string;
+}
 
 @Controller('consultations')
 @UseGuards(JwtAuthGuard)
@@ -10,7 +16,7 @@ export class ConsultationController {
 
   @Get()
   async findAll(@Request() req): Promise<Consultation[]> {
-    return this.consultationService.findAllByUser(req.user.userId);
+    return this.consultationService.findAllByUser(req.user.id);
   }
 
   @Get(':id')
@@ -46,4 +52,14 @@ export class ConsultationController {
   ): Promise<AIResponse> {
     return this.consultationService.addUserMessage(+id, data.message);
   }
+
+  @Patch(':id/notes')
+  async updateNotes(
+    @Param('id') id: number,
+    @Body() dto: UpdateNotesDto,
+    @Request() req
+  ) {
+    return this.consultationService.updateNotes(+id, dto.notes, req.user.userId);
+  }
+
 }

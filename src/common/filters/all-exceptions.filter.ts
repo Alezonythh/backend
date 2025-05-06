@@ -41,11 +41,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       path: request.url,
       method: request.method,
       message: status === HttpStatus.INTERNAL_SERVER_ERROR 
-<<<<<<< HEAD
-        ? 'An error occurred on the server. Please try again later.'
-=======
         ? 'An error occurred on the server. Please try again later.' // Hide actual error in production
->>>>>>> b22aeae0e9cf08751aad34fb773519ac818aab0d
         : message,
       success: false,
       requestId: request['id'] || null

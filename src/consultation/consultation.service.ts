@@ -8,7 +8,7 @@ export class ConsultationService {
   constructor(
     private prisma: PrismaService,
     private aiService: AIService,
-  ) {}
+  ) { }
 
   async findAllByUser(userId: number): Promise<Consultation[]> {
     return this.prisma.consultation.findMany({
@@ -16,6 +16,7 @@ export class ConsultationService {
       include: {
         doctor: true,
       },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -91,65 +92,84 @@ export class ConsultationService {
       },
     });
   }
-    async addUserMessage(
-      consultationId: number,
-      userMessage: string,
-    ): Promise<AIResponse> {
-      const consultation = await this.prisma.consultation.findUnique({
-        where: { id: consultationId },
-        include: {
-          doctor: true,
-          user: true,
-          aiResponses: {
-            orderBy: {
-              timestamp: 'asc', 
-            },
+  async addUserMessage(
+    consultationId: number,
+    userMessage: string,
+  ): Promise<AIResponse> {
+    const consultation = await this.prisma.consultation.findUnique({
+      where: { id: consultationId },
+      include: {
+        doctor: true,
+        user: true,
+        aiResponses: {
+          orderBy: {
+            timestamp: 'asc',
           },
         },
-      });
-    
-      if (!consultation) {
-        throw new NotFoundException(`Consultation with ID ${consultationId} not found`);
-      }
-    
-      if (consultation.status !== 'active') {
-        throw new Error('Consultation must be active to add messages');
-      }
-    
-      // 1️⃣ Simpan pesan user terlebih dahulu
-      await this.prisma.aIResponse.create({
-        data: {
-          consultationId,
-          message: userMessage,
-          role: 'user',
-        },
-      });
-    
-      // 2️⃣ Refresh consultation agar aiResponses berisi pesan user juga
-      const updatedConsultation = await this.prisma.consultation.findUnique({
-        where: { id: consultationId },
-        include: {
-          doctor: true,
-          user: true,
-          aiResponses: {
-            orderBy: { timestamp: 'asc' },
-          },
-        },
-      });
-    
-      // 3️⃣ Generate AI response
-      const aiResponse = await this.aiService.generateResponse(
-        userMessage,
-        updatedConsultation!,
-      );
-    
-      // 4️⃣ Simpan pesan AI
-      return this.prisma.aIResponse.create({
-        data: {
-          consultationId,
-          message: aiResponse,
-          role: 'assistant',
-        },
-      });
+      },
+    });
+
+    if (!consultation) {
+      throw new NotFoundException(`Consultation with ID ${consultationId} not found`);
     }
+
+    if (consultation.status !== 'active') {
+      throw new Error('Consultation must be active to add messages');
     }
+
+    // 1. Simpan pesan user
+    await this.prisma.aIResponse.create({
+      data: {
+        consultationId,
+        message: userMessage,
+        role: 'user',
+      },
+    });
+
+    // 2️. Refresh consultation agar aiResponses berisi pesan user juga
+    const updatedConsultation = await this.prisma.consultation.findUnique({
+      where: { id: consultationId },
+      include: {
+        doctor: true,
+        user: true,
+        aiResponses: {
+          orderBy: { timestamp: 'asc' },
+        },
+      },
+    });
+
+    //3. Generate AI response
+    const aiResponse = await this.aiService.generateResponse(
+      userMessage,
+      updatedConsultation!,
+    );
+
+    // 4. Simpan pesan AI
+    return this.prisma.aIResponse.create({
+      data: {
+        consultationId,
+        message: aiResponse,
+        role: 'assistant',
+      },
+    });
+  }
+
+  async updateNotes(id: number, notes: string, userId: number) {
+    // pastikan konsultasi milik user
+    const consultation = await this.prisma.consultation.findUnique({
+      where: { id },
+    });
+  
+    if (!consultation || consultation.userId !== userId) {
+      console.log('userId:', userId);
+      console.log('consultation.userId:', consultation?.userId);
+      throw new Error('Unauthorized');
+    }
+  
+    return this.prisma.consultation.update({
+      where: { id },
+      data: { notes },
+    });
+  }
+  
+}
