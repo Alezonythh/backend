@@ -38,7 +38,7 @@ async function bootstrap() {
   }));
   
   app.enableCors({
-    origin: 'http://localhost:3000', // frontend
+    origin: 'https://healtywell.hostspot.online', // frontend
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     credentials: true 
   });
