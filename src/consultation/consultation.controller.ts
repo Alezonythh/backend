@@ -15,9 +15,10 @@ export class ConsultationController {
   constructor(private readonly consultationService: ConsultationService) {}
 
   @Get()
-  async findAll(@Request() req): Promise<Consultation[]> {
-    return this.consultationService.findAllByUser(req.user.id);
-  }
+async findAll(@Request() req): Promise<Consultation[]> {
+  return this.consultationService.findAllByUser(req.user.userId);
+}
+
 
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<Consultation & { aiResponses: AIResponse[] }> {
@@ -54,12 +55,12 @@ export class ConsultationController {
   }
 
   @Patch(':id/notes')
-  async updateNotes(
-    @Param('id') id: number,
-    @Body() dto: UpdateNotesDto,
-    @Request() req
-  ) {
-    return this.consultationService.updateNotes(+id, dto.notes, req.user.userId);
-  }
+async updateNotes(
+  @Param('id') id: number,
+  @Body() dto: UpdateNotesDto,
+  @Request() req
+) {
+  return this.consultationService.updateNotes(+id, dto.notes, req.user.id);
+}
 
 }
