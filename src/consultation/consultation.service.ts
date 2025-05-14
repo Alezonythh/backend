@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AIService } from './ai.service';
 import { Consultation, AIResponse } from '@prisma/client';
@@ -20,7 +20,7 @@ export class ConsultationService {
     });
   }
 
-  async findOne(id: number): Promise<Consultation & { aiResponses: AIResponse[] }> {
+  async findOne(id: number, userId: number): Promise<Consultation & { aiResponses: AIResponse[] }> {
     const consultation = await this.prisma.consultation.findUnique({
       where: { id },
       include: {
@@ -33,13 +33,19 @@ export class ConsultationService {
         },
       },
     });
-
+  
     if (!consultation) {
       throw new NotFoundException(`Consultation with ID ${id} not found`);
     }
-
+  
+    // Check if the consultation belongs to the requesting user
+    if (consultation.userId !== userId) {
+      throw new UnauthorizedException('You do not have permission to access this consultation');
+    }
+  
     return consultation;
   }
+  
 
   async create(data: {
     userId: number;

@@ -21,10 +21,12 @@ async findAll(@Request() req): Promise<Consultation[]> {
 
 
   @Get(':id')
-  async findOne(@Param('id') id: string): Promise<Consultation & { aiResponses: AIResponse[] }> {
-    return this.consultationService.findOne(+id);
+  async findOne(
+    @Param('id') id: string,
+    @Request() req
+  ): Promise<Consultation & { aiResponses: AIResponse[] }> {
+    return this.consultationService.findOne(+id, req.user.userId);
   }
-
   @Post()
   async create(
     @Request() req,
