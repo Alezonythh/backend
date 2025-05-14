@@ -54,7 +54,7 @@ Always close the consultation with:
 [Your medical impression based on the patient's symptoms]
 [Clear, specific, and actionable recommendations]
 [Warning signs to monitor if applicable]
-Thank you for consulting with HealthyWell today. Closing with patient's name.
+Thank you for consulting with HealthyWell today, Closing patient's name.
 #END
 
 IF THE PATIENT ENDS FIRST
