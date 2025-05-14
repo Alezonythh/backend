@@ -62,7 +62,7 @@ async updateNotes(
   @Body() dto: UpdateNotesDto,
   @Request() req
 ) {
-  return this.consultationService.updateNotes(+id, dto.notes, req.user.id);
+  return this.consultationService.updateNotes(+id, dto.notes, req.user.userId);
 }
 
 }
