@@ -89,7 +89,6 @@ This consultation is provided for informational and support purposes only and do
       // Panggil Groq API
       const completion = await this.groqClient.chat.completions.create({
         model: 'meta-llama/llama-4-maverick-17b-128e-instruct',
-        stop: "#END",
         messages,
       });
 
